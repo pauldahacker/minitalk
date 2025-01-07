@@ -38,7 +38,7 @@ static char	*dtobin(long n)
 	{
 		while (len >= 0)
 		{
-			bin[len--] = !((n % 2) * -1) + '0';
+			bin[len--] = !((n % 2) && -1) + '0';
 			n /= 2;
 		}
 	}

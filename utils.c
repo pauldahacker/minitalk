@@ -18,7 +18,8 @@ static int	is_space(int c)
 		|| c == '\f' || c == '\r' || c == '\v');
 }
 
-int	ft_atoi(const char *str)
+// never goes above MAX_PID
+int	ft_atoi2(const char *str)
 {
 	int	sign;
 	int	result;
@@ -30,7 +31,7 @@ int	ft_atoi(const char *str)
 	if (*str && (*str == '-' || *str == '+'))
 	{
 		if (*str == '-')
-			sign *= -1;
+			sign = -1;
 		++str;
 	}
 	if (!*str || *str < '0' || *str > '9')
@@ -38,7 +39,17 @@ int	ft_atoi(const char *str)
 	while (*(str + 1) && *(str + 1) >= '0' && *(str + 1) <= '9')
 	{
 		result = result * 10 + (*str - '0');
+		if (result > MAX_PID)
+			return (0);
 		++str;
 	}
 	return (sign * result * 10 + sign * (*str - '0'));
+}
+
+void	error_exit(char *output, int code)
+{
+	while (output && *output)
+		write(STDERR_FILENO, output++, 1);
+	write(STDERR_FILENO, "\n", 1);
+	exit(code);
 }

@@ -14,19 +14,29 @@
 
 void	send_char(int pid, char c)
 {
-	int		pos;
-	char	tmp;
+	int	pos;
+	int	bit;
 
 	pos = -1;
-	while (++pos < CHAR_BIN_SIZE)
+	while (++pos < CHAR_BIT)
 	{
-		tmp = c >> pos;
-		if (tmp % 2)
-			kill(pid, SIGUSR1);
-		if (tmp % 2 == 0)
-			kill(pid, SIGUSR2);
+		bit = c >> pos;
+		if ((bit % 2) && kill(pid, SIGUSR1) == -1)
+			error_exit("Error sending a signal", EXIT_FAILURE);
+		if (!(bit % 2) && kill(pid, SIGUSR2) == -1)
+			error_exit("Error sending a signal", EXIT_FAILURE);
 		usleep(100);
 	}
+}
+
+void	send_msg(int pid, char *msg)
+{
+	int	i;
+
+	i = -1;
+	while (++i < (int)ft_strlen(msg))
+		send_char(pid, msg[i]);
+	send_char(pid, '\0');
 }
 
 int	main(int argc, char *argv[])
@@ -36,14 +46,14 @@ int	main(int argc, char *argv[])
 	int		i;
 
 	if (argc != 3)
-	{
-		ft_printf("Input Error\nExpected: ./client (PID) (MESSAGE)\n");
-		exit(1);
-	}
-	pid = ft_atoi(argv[1]);
+		error_exit("Incorrect input", EXIT_FAILURE);
+	pid = ft_atoi2(argv[1]);
+	if (pid <= 0)
+		error_exit("Incorrect PID input", EXIT_FAILURE);
 	message = argv[2];
 	i = -1;
-	while (++i < (int)ft_strlen(message))
-		send_char(pid, message[i]);
+	send_msg(pid, message);
+	while (1)
+		pause();
 	return (0);
 }

@@ -12,23 +12,6 @@
 
 #include "minitalk.h"
 
-void	action(int sig)
-{
-	static char	c;
-	static int	bits;
-
-	c += (1 << bits++) * (sig == SIGUSR1);
-	if (bits == 8)
-	{
-		if (c == '\0')
-			ft_printf("\n");
-		else
-			ft_printf("%c", c);
-		c = 0;
-		bits = 0;
-	}
-}
-
 int	main(void)
 {
 	int	pid;

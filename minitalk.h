@@ -19,12 +19,20 @@
 # include <limits.h>
 # include "ft_printf/ft_printf.h"
 
-# define CHAR_BIN_SIZE 8
+// this can be found in /proc/sys/kernel/pid_max
+# define MAX_PID 4194304
 
 // ft_printf
-int	ft_printf(const char *input, ...);
+int		ft_printf(const char *input, ...);
+
+// client.c
+void	send_msg(int pid, char *msg);
+
+// server.c
+void	action(int sig);
 
 // utils.c
-int	ft_atoi(const char *str);
+int		ft_atoi2(const char *str);
+void	error_exit(char *output, int code);
 
 #endif
