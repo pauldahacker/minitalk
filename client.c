@@ -12,7 +12,7 @@
 
 #include "minitalk.h"
 
-void	send_char(int pid, char c)
+static void	send_char(int pid, char c)
 {
 	int	pos;
 	int	bit;
@@ -29,7 +29,7 @@ void	send_char(int pid, char c)
 	}
 }
 
-void	send_msg(int pid, char *msg)
+static void	send_msg(int pid, char *msg)
 {
 	int	i;
 
@@ -42,18 +42,12 @@ void	send_msg(int pid, char *msg)
 int	main(int argc, char *argv[])
 {
 	int		pid;
-	char	*message;
-	int		i;
 
 	if (argc != 3)
 		error_exit("Incorrect input", EXIT_FAILURE);
 	pid = ft_atoi2(argv[1]);
 	if (pid <= 0)
 		error_exit("Incorrect PID input", EXIT_FAILURE);
-	message = argv[2];
-	i = -1;
-	send_msg(pid, message);
-	while (1)
-		pause();
+	send_msg(pid, argv[2]);
 	return (0);
 }

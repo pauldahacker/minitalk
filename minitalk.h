@@ -25,12 +25,6 @@
 // ft_printf
 int		ft_printf(const char *input, ...);
 
-// client.c
-void	send_msg(int pid, char *msg);
-
-// server.c
-void	action(int sig);
-
 // utils.c
 int		ft_atoi2(const char *str);
 void	error_exit(char *output, int code);

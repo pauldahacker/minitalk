@@ -12,7 +12,7 @@
 
 #include "minitalk.h"
 
-void	action(int sig)
+static void	action(int sig)
 {
 	static char	c;
 	static int	bits;
@@ -35,7 +35,8 @@ int	main(void)
 
 	pid = getpid();
 	ft_printf("Server PID: %d\n", pid);
-	if (signal(SIGUSR2, action) == SIG_ERR || signal(SIGUSR1, action) == SIG_ERR)
+	if (signal(SIGUSR2, action) == SIG_ERR
+		|| signal(SIGUSR1, action) == SIG_ERR)
 		error_exit("Error activating signal handlers", 1);
 	while (1)
 		pause();

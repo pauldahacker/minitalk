@@ -1,5 +1,8 @@
-SERVER_NAME	= server
-CLIENT_NAME	= client
+S_NAME	= server
+C_NAME	= client
+
+S_BONUS_NAME	= server_bonus
+C_BONUS_NAME	= client_bonus
 
 BLUE 	= \033[0;34m
 GREEN 	= \033[0;32m
@@ -9,9 +12,11 @@ YELLOW	= \033[0;93m
 BROWN 	= \033[38;2;184;143;29m
 RESET 	= \033[0m
 
-SERVER_SRCS		= server.c
+S_SRCS		= server.c
+C_SRCS		= client.c
 
-CLIENT_SRCS		= client.c
+S_BONUS_SRCS	= server_bonus.c
+C_BONUS_SRCS	= client_bonus.c
 
 OTHER_SRCS	=	./ft_printf/ft_printf.c ./ft_printf/ft.c ./ft_printf/printchar.c \
 				./ft_printf/printhex.c ./ft_printf/printnbr.c ./ft_printf/printud.c \
@@ -23,32 +28,47 @@ CC      = gcc
 CFLAGS  = -Wall -Wextra -Werror
 RM      = rm -rf
 
-%.o:    %.c
+S_OBJS	= ${S_SRCS:.c=.o}
+C_OBJS	= ${C_SRCS:.c=.o}
+OTHER_OBJS	= ${OTHER_SRCS:.c=.o}
+
+S_BONUS_OBJS	= ${S_BONUS_SRCS:.c=.o}
+C_BONUS_OBJS	= ${C_BONUS_SRCS:.c=.o}
+
+all: ${S_NAME} ${C_NAME}
+
+${S_NAME}:	$(S_OBJS) ${OTHER_OBJS}
+	@${CC} ${S_SRCS} ${OTHER_SRCS} -o ${S_NAME}
+	@echo "\n$(GREEN)Created $(S_NAME) ✓ $(RESET)\n"
+
+${C_NAME}:	${C_OBJS} ${OTHER_OBJS}
+	@${CC} ${C_SRCS} ${OTHER_SRCS} -o ${C_NAME}
+	@echo "\n$(GREEN)Created $(C_NAME) ✓ $(RESET)\n"
+
+%.o: %.c ${HEADERS} Makefile
 	@echo "$(BROWN)Compiling   ${BLUE}→   $(YELLOW)$< $(RESET)"
 	@${CC} ${CFLAGS} -c -o $@ $<
 
-SERVER_OBJS	= ${SERVER_SRCS:.c=.o}
-CLIENT_OBJS	= ${CLIENT_SRCS:.c=.o}
-OTHER_OBJS	= ${OTHER_SRCS:.c=.o}
-
-all: ${SERVER_NAME} ${CLIENT_NAME}
-
-${SERVER_NAME}:	$(SERVER_OBJS) ${OTHER_OBJS} $(HEADERS)
-	@${CC} ${SERVER_SRCS} ${OTHER_SRCS} -o ${SERVER_NAME}
-	@echo "\n$(GREEN)Created $(SERVER_NAME) ✓ $(RESET)\n"
-
-${CLIENT_NAME}:	${CLIENT_OBJS} ${OTHER_OBJS} ${HEADERS}
-	@${CC} ${CLIENT_SRCS} ${OTHER_SRCS} -o ${CLIENT_NAME}
-	@echo "\n$(GREEN)Created $(CLIENT_NAME) ✓ $(RESET)\n"
-
 clean:
-	${RM} ${SERVER_OBJS} ${CLIENT_OBJS} ${OTHER_OBJS}
+	@${RM} ${S_OBJS} ${C_OBJS} ${OTHER_OBJS} ${S_BONUS_OBJS} ${C_BONUS_OBJS}
 	@echo "\n${GREEN}Objects cleaned successfully $(RESET)\n"
 
 fclean:		clean
-	@${RM} ${SERVER_NAME} ${CLIENT_NAME} */*.o
-	@echo "\n${GREEN}Objects and executables cleaned successfully $(RESET)\n"
+	@${RM} ${S_NAME} ${C_NAME} ${S_BONUS_NAME} ${C_BONUS_NAME}
+	@echo "\n${GREEN}Executables cleaned successfully $(RESET)\n"
 
 re: fclean all
+
+bonus: ${S_BONUS_NAME} ${C_BONUS_NAME}
+
+${S_BONUS_NAME}: ${S_BONUS_OBJS} ${OTHER_OBJS}
+	@${CC} ${S_BONUS_SRCS} ${OTHER_SRCS} -o ${S_BONUS_NAME}
+	@echo "\n$(GREEN)Created $(S_BONUS_NAME) ✓ $(RESET)\n"
+
+${C_BONUS_NAME}: ${C_BONUS_OBJS} ${OTHER_OBJS}
+	@${CC} ${C_BONUS_SRCS} ${OTHER_SRCS} -o ${C_BONUS_NAME}
+	@echo "\n$(GREEN)Created $(C_BONUS_NAME) ✓ $(RESET)\n"
+
+rebonus: fclean bonus
 
 .PHONY: all clean fclean re
