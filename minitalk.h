@@ -22,11 +22,14 @@
 // this can be found in /proc/sys/kernel/pid_max
 # define MAX_PID 4194304
 
+# define INIT_BUF_SIZE 1024
+
 // ft_printf
 int		ft_printf(const char *input, ...);
 
 // utils.c
 int		ft_atoi2(const char *str);
 void	error_exit(char *output, int code);
+size_t	ft_strlcpy2(unsigned char *dest, unsigned char *src, size_t size);
 
 #endif

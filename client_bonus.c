@@ -15,11 +15,13 @@
 static void	action(int sig)
 {
 	if (sig == SIGUSR1)
-		ft_printf("Message was successfully received by server!\n");
-	return ;
+		ft_printf("Message successfully received by server!\n");
+	else
+		ft_printf("Bit received\n");
+	return;
 }
 
-static void	send_byte(int pid, unsigned char byte)
+static void	send_byte(int dest_pid, unsigned char byte, int pid_sent)
 {
 	int	pos;
 	int	bit;
@@ -28,41 +30,64 @@ static void	send_byte(int pid, unsigned char byte)
 	while (++pos < CHAR_BIT)
 	{
 		bit = byte >> pos;
-		if ((bit % 2) && kill(pid, SIGUSR1) == -1)
-			error_exit("Error sending a signal", EXIT_FAILURE);
-		if (!(bit % 2) && kill(pid, SIGUSR2) == -1)
-			error_exit("Error sending a signal", EXIT_FAILURE);
+		if ((bit % 2) && kill(dest_pid, SIGUSR1) == -1)
+			error_exit("Error sending SIGUSR1 from client", EXIT_FAILURE);
+		if (!(bit % 2) && kill(dest_pid, SIGUSR2) == -1)
+			error_exit("Error sending SIGUSR2 from client", EXIT_FAILURE);
 		usleep(100);
 	}
+	(void)pid_sent;
 }
 
-static void	send_msg(int pid, char *msg)
+static void	send_int(int dest_pid, int num, int pid_sent)
+{
+	int				divisor;
+	unsigned char	byte_to_send;
+
+	divisor = 1;
+	while (num / divisor >= 10)
+		divisor *= 10;
+	while (divisor)
+	{
+		byte_to_send = num / divisor + '0';
+		send_byte(dest_pid, byte_to_send, pid_sent);
+		//ft_printf("sent: %c\n", byte_to_send);
+		num = num % divisor;
+		divisor /= 10;
+	}
+	send_byte(dest_pid, '\0', pid_sent);
+}
+
+static void	send_message(int dest_pid, char *msg)
 {
 	int	i;
 
 	i = -1;
 	while (++i < (int)ft_strlen(msg))
-		send_byte(pid, (unsigned char)msg[i]);
-	send_byte(pid, '\0');
+		send_byte(dest_pid, (unsigned char)msg[i], 0);
+	send_byte(dest_pid, '\0', 0);
 }
 
 int	main(int argc, char *argv[])
 {
 	int		server_pid;
-	char	*pid_string;
+	int		client_pid;
 
 	if (argc != 3)
-		error_exit("Incorrect input", EXIT_FAILURE);
+		error_exit("Usage: ./client <server_pid> <message>", EXIT_FAILURE);
 	server_pid = ft_atoi2(argv[1]);
-	if (server_pid <= 0)
-		error_exit("Incorrect PID input", EXIT_FAILURE);
-	if (signal(SIGUSR1, action) == SIG_ERR)
-		error_exit("Error activating signal handler for client bonus", 1);
-	pid_string = ft_itoa(getpid());
-	if (!pid_string)
-		error_exit("Malloc Error", EXIT_FAILURE);
-	send_msg(server_pid, pid_string);
-	free(pid_string);
-	send_msg(server_pid, argv[2]);
+	if (server_pid <= 0 || kill(server_pid, 0) == -1)
+		error_exit("Invalid or unreachable server PID", EXIT_FAILURE);
+	if (signal(SIGUSR1, action) == SIG_ERR 
+		|| signal(SIGUSR2, action) == SIG_ERR)
+		error_exit("Error setting up signal handlers in client", EXIT_FAILURE);
+	client_pid = getpid();
+	//ft_printf("[sending pid: %d]\n", client_pid);
+	send_int(server_pid, client_pid, 0);
+	pause();
+	send_int(server_pid, ft_strlen(argv[2]), 0);
+	pause();
+	send_message(server_pid, argv[2]);
+	pause();
 	return (0);
 }

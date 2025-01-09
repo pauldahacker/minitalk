@@ -53,3 +53,21 @@ void	error_exit(char *output, int code)
 	write(STDERR_FILENO, "\n", 1);
 	exit(code);
 }
+
+size_t	ft_strlcpy2(unsigned char *dest, unsigned char *src, size_t size)
+{
+	size_t	i;
+	size_t	result;
+
+	i = 0;
+	result = ft_strlen((const char *)src);
+	if (size == 0)
+		return (result);
+	while (src[i] && i < size - 1)
+	{
+		dest[i] = src[i];
+		i++;
+	}
+	dest[i] = '\0';
+	return (result);
+}
