@@ -1,16 +1,18 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   server.c                                           :+:      :+:    :+:   */
+/*   server_bonus.c                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: pde-masc <pde-masc@student.42barcel>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/09 18:22:25 by pde-masc          #+#    #+#             */
-/*   Updated: 2024/02/14 14:15:13 by pde-masc         ###   ########.fr       */
+/*   Updated: 2025/01/11 20:50:35 by pde-masc         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minitalk.h"
+
+static int	g_server_state = WAITING_FOR_PID;
 
 static void	receive_pid(int sig, int *client_pid)
 {
@@ -26,50 +28,67 @@ static void	receive_pid(int sig, int *client_pid)
 			*client_pid = *client_pid * 10 + (c - '0');
 		c = 0;
 		bits = 0;
+		if (*client_pid && kill(*client_pid, 0) == 0)
+		{
+			usleep(5000);
+			g_server_state = WAITING_FOR_MSG_LENGTH;
+			if (kill(*client_pid, SIGUSR2) == -1)
+				error_exit("Error sending PID acknowledgment", EXIT_FAILURE);
+		}
 	}
 }
 
-static void	update_server(unsigned char *c, unsigned char **buf, int *i, int *client_pid)
-{
-	(*buf)[(*i)++] = *c;
-	if (*c == '\0')
-	{
-		ft_printf("%s\n", *buf);
-		free(*buf);
-		*buf = NULL;
-		*i = 0;
-		usleep(500);
-		if (kill(*client_pid, SIGUSR1) == -1)
-			error_exit("Error sending acknowledgment 1 to client", EXIT_FAILURE);
-		*client_pid = 0;
-	}
-	*c = 0;
-}
-
-static unsigned char	*get_buffer_mem(unsigned char *c, int client_pid)
+static unsigned char	*get_buffer_mem(unsigned char c, int client_pid)
 {
 	static int		message_len = 0;
 	unsigned char	*buffer;
 
-	//ft_printf("msg len: %d\n", message_len);
-	if (*c == '\0')
+	if (c)
+		message_len = message_len * 10 + (c - '0');
+	usleep(200);
+	if (c && kill(client_pid, SIGUSR2) == -1)
+		error_exit("Error sending bit acknowledgment", EXIT_FAILURE);
+	if (c == '\0')
 	{
 		buffer = (unsigned char *)malloc(message_len * sizeof(unsigned char));
 		if (!buffer)
 			error_exit("Malloc Error", 1);
 		message_len = 0;
-		usleep(500);
+		g_server_state = WAITING_FOR_MSG;
 		if (kill(client_pid, SIGUSR2) == -1)
-			error_exit("Error sending acknowledgment to client", EXIT_FAILURE);
+			error_exit("Error sending length acknowledgment", EXIT_FAILURE);
 		return (buffer);
 	}
-	else
-		message_len = message_len * 10 + (*c - '0');
-	*c = 0;
 	return (NULL);
 }
 
-static void	action(int sig)
+static void	update_server(unsigned char *c, unsigned char **buf,
+	int *i, int *client_pid)
+{
+	if (g_server_state == WAITING_FOR_MSG)
+	{
+		(*buf)[(*i)++] = *c;
+		usleep(200);
+		if (*c && kill(*client_pid, SIGUSR2) == -1)
+			error_exit("Error sending bit acknowledgment", EXIT_FAILURE);
+		if (*c == '\0')
+		{
+			ft_printf("%s\n", *buf);
+			free(*buf);
+			*buf = NULL;
+			*i = 0;
+			g_server_state = WAITING_FOR_PID;
+			if (kill(*client_pid, SIGUSR1) == -1)
+				error_exit("Error sending msg acknowledgment", EXIT_FAILURE);
+			*client_pid = 0;
+		}
+	}
+	else
+		*buf = get_buffer_mem(*c, *client_pid);
+	*c = 0;
+}
+
+static void	server_action(int sig)
 {
 	static unsigned char	*buffer = NULL;
 	static unsigned char	c = 0;
@@ -77,21 +96,21 @@ static void	action(int sig)
 	static int				bits = 0;
 	static int				client_pid = 0;
 
-	if (!client_pid || kill(client_pid, 0) == -1)
+	if (g_server_state == WAITING_FOR_PID)
 		receive_pid(sig, &client_pid);
 	else
 	{
 		c += (1 << bits++) * (sig == SIGUSR1);
-		usleep(200);
-		if (kill(client_pid, SIGUSR2) == -1)
-			error_exit("Error sending acknowledgment to client", EXIT_FAILURE);
+		if (bits != 8)
+		{
+			usleep(200);
+			if (kill(client_pid, SIGUSR2) == -1)
+				error_exit("Error sending bit acknowledgment", EXIT_FAILURE);
+		}
 		if (bits == 8)
 		{
 			bits = 0;
-			if (buffer)
-				update_server(&c, &buffer, &index, &client_pid);
-			else
-				buffer = get_buffer_mem(&c, client_pid);
+			update_server(&c, &buffer, &index, &client_pid);
 		}
 	}
 }
@@ -102,8 +121,8 @@ int	main(void)
 
 	pid = getpid();
 	ft_printf("Server PID: %d\n", pid);
-	setup_signal(SIGUSR2, action);
-	setup_signal(SIGUSR1, action);
+	signal(SIGUSR2, server_action);
+	signal(SIGUSR1, server_action);
 	while (1)
 		pause();
 	return (0);

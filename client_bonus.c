@@ -1,22 +1,22 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   client.c                                           :+:      :+:    :+:   */
+/*   client_bonus.c                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: pde-masc <pde-masc@student.42barcel>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/09 18:22:09 by pde-masc          #+#    #+#             */
-/*   Updated: 2024/02/10 19:26:28 by pde-masc         ###   ########.fr       */
+/*   Updated: 2025/01/11 20:50:26 by pde-masc         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minitalk.h"
 
-static void	action(int sig)
+static void	client_action(int sig)
 {
 	if (sig == SIGUSR1)
 		ft_printf("Message successfully received by server!\n");
-	return;
+	return ;
 }
 
 static void	send_byte(int dest_pid, unsigned char byte, int info_sent)
@@ -51,29 +51,32 @@ static void	send_int(int dest_pid, int num, int pid_sent)
 	{
 		byte_to_send = num / divisor + '0';
 		send_byte(dest_pid, byte_to_send, pid_sent);
-		//ft_printf("sent: %c\n", byte_to_send);
 		num = num % divisor;
 		divisor /= 10;
 	}
 	if (pid_sent)
-	{
 		send_byte(dest_pid, '\0', 1);
-		//ft_printf("sent: %c\n", '\0');
-	}
 }
 
 static void	send_message(int dest_pid, char *msg)
 {
 	int	i;
+	int	prev_percent;
+	int	msg_len;
 
+	msg_len = (int)ft_strlen(msg);
+	prev_percent = 0;
 	i = -1;
-	while (++i < (int)ft_strlen(msg))
+	while (++i < msg_len)
 	{
 		send_byte(dest_pid, (unsigned char)msg[i], 1);
-		//ft_printf("sent: %c\n", (unsigned char)msg[i]);
+		if ((i * 100 / msg_len) > prev_percent)
+		{
+			prev_percent = (i * 100 / msg_len);
+			ft_printf("[%d%% sent]\n", prev_percent);
+		}
 	}
 	send_byte(dest_pid, '\0', 1);
-	//ft_printf("sent: %c\n", '\0');
 }
 
 int	main(int argc, char *argv[])
@@ -86,14 +89,12 @@ int	main(int argc, char *argv[])
 	server_pid = ft_atoi2(argv[1]);
 	if (server_pid <= 0 || kill(server_pid, 0) == -1)
 		error_exit("Invalid or unreachable server PID", EXIT_FAILURE);
-	setup_signal(SIGUSR2, action);
-	setup_signal(SIGUSR1, action);
+	signal(SIGUSR2, client_action);
+	signal(SIGUSR1, client_action);
 	client_pid = getpid();
 	send_int(server_pid, client_pid, 0);
-	usleep(2000);
+	pause();
 	send_int(server_pid, ft_strlen(argv[2]), 1);
-	pause();
 	send_message(server_pid, argv[2]);
-	pause();
 	return (0);
 }
