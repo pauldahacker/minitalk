@@ -24,58 +24,48 @@ static void	receive_pid(int sig, int *client_pid)
 			*client_pid = 0;
 		else
 			*client_pid = *client_pid * 10 + (c - '0');
-		if (kill(*client_pid, 0) == 0)
-		{
-			if (kill(*client_pid, SIGUSR2) == -1)
-				error_exit("Error sending acknowledgment to client", EXIT_FAILURE);
-		}
 		c = 0;
 		bits = 0;
 	}
 }
 
-static void	reset_server(unsigned char **buf, int *i, int *pid)
+static void	update_server(unsigned char *c, unsigned char **buf, int *i, int *client_pid)
 {
-	if (*buf)
-	{
-		free(*buf);
-		*buf = NULL;
-	}
-	*i = 0;
-	*pid = 0;
-}
-
-static void	update_server(unsigned char **buf, int *i, int *client_pid)
-{
-	if ((*buf)[*i] == '\0')
+	(*buf)[(*i)++] = *c;
+	if (*c == '\0')
 	{
 		ft_printf("%s\n", *buf);
-		usleep(1000);
+		free(*buf);
+		*buf = NULL;
+		*i = 0;
+		usleep(500);
 		if (kill(*client_pid, SIGUSR1) == -1)
-			error_exit("Error sending acknowledgment to client", EXIT_FAILURE);
-		reset_server(buf, i, client_pid);
-		return ;
+			error_exit("Error sending acknowledgment 1 to client", EXIT_FAILURE);
+		*client_pid = 0;
 	}
-	++(*i);
+	*c = 0;
 }
 
-static unsigned char	*get_buffer_mem(unsigned char c, int client_pid)
+static unsigned char	*get_buffer_mem(unsigned char *c, int client_pid)
 {
 	static int		message_len = 0;
 	unsigned char	*buffer;
 
-	if (c == '\0')
+	//ft_printf("msg len: %d\n", message_len);
+	if (*c == '\0')
 	{
 		buffer = (unsigned char *)malloc(message_len * sizeof(unsigned char));
-		message_len = 0;
 		if (!buffer)
 			error_exit("Malloc Error", 1);
-		usleep(1000);
+		message_len = 0;
+		usleep(500);
 		if (kill(client_pid, SIGUSR2) == -1)
 			error_exit("Error sending acknowledgment to client", EXIT_FAILURE);
 		return (buffer);
 	}
-	message_len = message_len * 10 + (c - '0');
+	else
+		message_len = message_len * 10 + (*c - '0');
+	*c = 0;
 	return (NULL);
 }
 
@@ -92,17 +82,16 @@ static void	action(int sig)
 	else
 	{
 		c += (1 << bits++) * (sig == SIGUSR1);
+		usleep(200);
+		if (kill(client_pid, SIGUSR2) == -1)
+			error_exit("Error sending acknowledgment to client", EXIT_FAILURE);
 		if (bits == 8)
 		{
-			if (!buffer)
-				buffer = get_buffer_mem(c, client_pid);
-			else
-			{
-				buffer[index] = c;
-				update_server(&buffer, &index, &client_pid);
-			}
-			c = 0;
 			bits = 0;
+			if (buffer)
+				update_server(&c, &buffer, &index, &client_pid);
+			else
+				buffer = get_buffer_mem(&c, client_pid);
 		}
 	}
 }
@@ -113,11 +102,9 @@ int	main(void)
 
 	pid = getpid();
 	ft_printf("Server PID: %d\n", pid);
-
-	if (signal(SIGUSR2, action) == SIG_ERR
-		|| signal(SIGUSR1, action) == SIG_ERR)
-		error_exit("Error setting up signal handlers in server", EXIT_FAILURE);
+	setup_signal(SIGUSR2, action);
+	setup_signal(SIGUSR1, action);
 	while (1)
-		pause(); // Wait for incoming signals
+		pause();
 	return (0);
 }

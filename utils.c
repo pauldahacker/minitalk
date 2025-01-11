@@ -71,3 +71,14 @@ size_t	ft_strlcpy2(unsigned char *dest, unsigned char *src, size_t size)
 	dest[i] = '\0';
 	return (result);
 }
+
+void setup_signal(int sig, void (*handler)(int))
+{
+    struct sigaction sa;
+
+    sa.sa_handler = handler;
+    sa.sa_flags = SA_RESTART;
+    sigemptyset(&sa.sa_mask);
+    if (sigaction(sig, &sa, NULL) == -1)
+        error_exit("Error setting up signal handler", EXIT_FAILURE);
+}

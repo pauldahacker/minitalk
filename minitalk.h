@@ -31,5 +31,6 @@ int		ft_printf(const char *input, ...);
 int		ft_atoi2(const char *str);
 void	error_exit(char *output, int code);
 size_t	ft_strlcpy2(unsigned char *dest, unsigned char *src, size_t size);
+void setup_signal(int sig, void (*handler)(int));
 
 #endif

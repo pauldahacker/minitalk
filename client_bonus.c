@@ -16,12 +16,10 @@ static void	action(int sig)
 {
 	if (sig == SIGUSR1)
 		ft_printf("Message successfully received by server!\n");
-	else
-		ft_printf("Bit received\n");
 	return;
 }
 
-static void	send_byte(int dest_pid, unsigned char byte, int pid_sent)
+static void	send_byte(int dest_pid, unsigned char byte, int info_sent)
 {
 	int	pos;
 	int	bit;
@@ -32,11 +30,13 @@ static void	send_byte(int dest_pid, unsigned char byte, int pid_sent)
 		bit = byte >> pos;
 		if ((bit % 2) && kill(dest_pid, SIGUSR1) == -1)
 			error_exit("Error sending SIGUSR1 from client", EXIT_FAILURE);
-		if (!(bit % 2) && kill(dest_pid, SIGUSR2) == -1)
+		else if (!(bit % 2) && kill(dest_pid, SIGUSR2) == -1)
 			error_exit("Error sending SIGUSR2 from client", EXIT_FAILURE);
-		usleep(100);
+		if (info_sent)
+			pause();
+		else
+			usleep(500);
 	}
-	(void)pid_sent;
 }
 
 static void	send_int(int dest_pid, int num, int pid_sent)
@@ -55,7 +55,11 @@ static void	send_int(int dest_pid, int num, int pid_sent)
 		num = num % divisor;
 		divisor /= 10;
 	}
-	send_byte(dest_pid, '\0', pid_sent);
+	if (pid_sent)
+	{
+		send_byte(dest_pid, '\0', 1);
+		//ft_printf("sent: %c\n", '\0');
+	}
 }
 
 static void	send_message(int dest_pid, char *msg)
@@ -64,8 +68,12 @@ static void	send_message(int dest_pid, char *msg)
 
 	i = -1;
 	while (++i < (int)ft_strlen(msg))
-		send_byte(dest_pid, (unsigned char)msg[i], 0);
-	send_byte(dest_pid, '\0', 0);
+	{
+		send_byte(dest_pid, (unsigned char)msg[i], 1);
+		//ft_printf("sent: %c\n", (unsigned char)msg[i]);
+	}
+	send_byte(dest_pid, '\0', 1);
+	//ft_printf("sent: %c\n", '\0');
 }
 
 int	main(int argc, char *argv[])
@@ -78,14 +86,12 @@ int	main(int argc, char *argv[])
 	server_pid = ft_atoi2(argv[1]);
 	if (server_pid <= 0 || kill(server_pid, 0) == -1)
 		error_exit("Invalid or unreachable server PID", EXIT_FAILURE);
-	if (signal(SIGUSR1, action) == SIG_ERR 
-		|| signal(SIGUSR2, action) == SIG_ERR)
-		error_exit("Error setting up signal handlers in client", EXIT_FAILURE);
+	setup_signal(SIGUSR2, action);
+	setup_signal(SIGUSR1, action);
 	client_pid = getpid();
-	//ft_printf("[sending pid: %d]\n", client_pid);
 	send_int(server_pid, client_pid, 0);
-	pause();
-	send_int(server_pid, ft_strlen(argv[2]), 0);
+	usleep(2000);
+	send_int(server_pid, ft_strlen(argv[2]), 1);
 	pause();
 	send_message(server_pid, argv[2]);
 	pause();
