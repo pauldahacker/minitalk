@@ -22,16 +22,13 @@ static void	receive_pid(int sig, int *client_pid)
 	c += (1 << bits++) * (sig == SIGUSR1);
 	if (bits == 8)
 	{
-		if (c < '0' || c > '9')
-			*client_pid = 0;
-		else
-			*client_pid = *client_pid * 10 + (c - '0');
+		*client_pid = *client_pid * 10 + (c - '0');
 		c = 0;
 		bits = 0;
 		if (*client_pid && kill(*client_pid, 0) == 0)
 		{
-			usleep(5000);
 			g_server_state = WAITING_FOR_MSG_LENGTH;
+			usleep(5000);
 			if (kill(*client_pid, SIGUSR2) == -1)
 				error_exit("Error sending PID acknowledgment", EXIT_FAILURE);
 		}
@@ -44,17 +41,20 @@ static unsigned char	*get_buffer_mem(unsigned char c, int client_pid)
 	unsigned char	*buffer;
 
 	if (c)
+	{
 		message_len = message_len * 10 + (c - '0');
-	usleep(200);
-	if (c && kill(client_pid, SIGUSR2) == -1)
-		error_exit("Error sending bit acknowledgment", EXIT_FAILURE);
-	if (c == '\0')
+		usleep(200);
+		if (kill(client_pid, SIGUSR2) == -1)
+			error_exit("Error sending bit acknowledgment", EXIT_FAILURE);
+	}
+	else if (c == '\0')
 	{
 		buffer = (unsigned char *)malloc(message_len * sizeof(unsigned char));
 		if (!buffer)
 			error_exit("Malloc Error", 1);
 		message_len = 0;
 		g_server_state = WAITING_FOR_MSG;
+		usleep(1000);
 		if (kill(client_pid, SIGUSR2) == -1)
 			error_exit("Error sending length acknowledgment", EXIT_FAILURE);
 		return (buffer);
@@ -77,9 +77,10 @@ static void	update_server(unsigned char *c, unsigned char **buf,
 			free(*buf);
 			*buf = NULL;
 			*i = 0;
-			g_server_state = WAITING_FOR_PID;
+			usleep(1000);
 			if (kill(*client_pid, SIGUSR1) == -1)
 				error_exit("Error sending msg acknowledgment", EXIT_FAILURE);
+			g_server_state = WAITING_FOR_PID;
 			*client_pid = 0;
 		}
 	}

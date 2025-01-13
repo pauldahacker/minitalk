@@ -35,7 +35,7 @@ static void	send_byte(int dest_pid, unsigned char byte, int info_sent)
 		if (info_sent)
 			pause();
 		else
-			usleep(500);
+			usleep(1000);
 	}
 }
 
