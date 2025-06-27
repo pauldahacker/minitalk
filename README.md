@@ -76,6 +76,4 @@ and my server is constantly waiting for signals:
 
 - if the size has not yet been received, it reconstructs the size bit by bit, usleeping 200 microseconds in between each bit received and acknowledgement signal sent, and sends another acknowledgement once the size is received;
 
-- if the info ]has ]
-=een received constructs the message bit by bit, again usleeping 200 microseconds in between each bit received and acknowledgement signal sent, and sends a final acknowledgement once the full message is received.
-
+- if the info has been received, constructs the message bit by bit, again usleeping 200 microseconds in between each bit received and acknowledgement signal sent, and sends a final acknowledgement once the full message is received.=-=
